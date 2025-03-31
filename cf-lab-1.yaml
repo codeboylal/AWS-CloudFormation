@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Simple CloudFormation template for EC2, VPC, Security Group, and Subnet
+
+Resources:
+
+  # VPC
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: MySimpleVPC
+
+  # Subnet
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: {"Ref": "MyVPC"}
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1a"
+      Tags:
+        - Key: Name
+          Value: MySimpleSubnet
+
+  # Security Group
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: MySecurityGroup
+      GroupDescription: Allow SSH access
+      VpcId: {"Ref": "MyVPC"}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  # EC2 Instance
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      KeyName: aws-test-key-12112
+      ImageId: ami-084568db4383264d4 
+      SubnetId: {"Ref": "MySubnet"}
+      SecurityGroupIds:
+        - {"Ref" : "MySecurityGroup"}
+      Tags:
+        - Key: Name
+          Value: MySimpleInstance
+
+Outputs:
+  InstanceId:
+    Description: Instance ID of the EC2 instance
+    Value: {"Ref": "MyInstance"}
+
+  SubnetId:
+    Description: Subnet ID
+    Value: {"Ref": "MySubnet"}

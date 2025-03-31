@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cloudformation to simulate test_lab with minimal resources
+
+Resources:
+
+  # Create a single VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: test_lab_vpc
+
+  # Create a Subnet
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: {"Ref": "VPC"}
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: test_lab_subnet
+
+  # Create a Route Table
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: {"Ref": "VPC"}
+      Tags:
+        - Key: Name
+          Value: test_lab_route_table
+
+  # Associate the Subnet with the Route Table
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: {"Ref": "Subnet"}
+      RouteTableId: {"Ref": "RouteTable"}
+
+  # Create an Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: test_lab_igw
+
+  # Attach the Internet Gateway to the VPC
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: {"Ref": "VPC"}
+      InternetGatewayId: {"Ref": "InternetGateway"}
+
+  # Add a Route to the Internet Gateway
+  RouteToInternet:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: {"Ref": "RouteTable"}
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: {"Ref": "InternetGateway"}
+
+  # Create a Security Group
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: InstanceSecurityGroup
+      GroupDescription: Allow SSH access
+      VpcId: {"Ref": "VPC"}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  # Create an EC2 Instance
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      KeyName: aws-test-key-12112  
+      ImageId: ami-084568db4383264d4 
+      SubnetId: {"Ref": "Subnet"}
+      SecurityGroupIds:
+        - {"Ref": "InstanceSecurityGroup"}
+      Tags:
+        - Key: Name
+          Value: test_lab_instance
+
+Outputs:
+  InstanceId:
+    Description: Instance ID of the EC2 instance
+    Value: {"Ref": "Instance"}
+
+  SubnetId:
+    Description: Subnet ID
+    Value: {"Ref": "Subnet"}
+
+  VPCId:
+    Description: VPC ID
+    Value: {"Ref": "VPC"}
